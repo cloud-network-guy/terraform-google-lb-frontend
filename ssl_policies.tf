@@ -24,7 +24,6 @@ resource "google_compute_ssl_policy" "default" {
   name            = each.value.name
   profile         = each.value.tls_profile
   min_tls_version = each.value.min_tls_version
-  address_type    = each.value.address_type
 }
 
 # Regional Custom SSL/TLS Policy

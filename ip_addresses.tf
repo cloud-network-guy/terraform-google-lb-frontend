@@ -55,4 +55,3 @@ resource "google_compute_global_address" "default" {
   ip_version   = each.value.ip_version
   address      = each.value.address
 }
-
