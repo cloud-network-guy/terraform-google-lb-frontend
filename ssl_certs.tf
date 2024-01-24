@@ -1,12 +1,13 @@
 locals {
   _ssl_certs = [for i, v in var.ssl_certs :
     {
-      create          = coalsce(v.create, true)
+      create          = coalesce(v.create, true)
+      project_id      = var.project_id
       name            = replace(coalesce(v.name, element(split(".", v.certificate), 0)), "_", "-")
-      name_prefix     = v.name_prefix
+      name_prefix     = null
       description     = v.description
-      region          = v.region
-      is_regional     = var.region != null ? true : false
+      region          = try(coalesce(v.region, var.region), null)
+      is_regional     = try(coalesce(v.region, var.region), null) != null ? true : false
       certificate     = length(v.certificate) < 256 ? file("./${v.certificate}") : v.certificate
       private_key     = length(v.private_key) < 256 ? file("./${v.private_key}") : v.private_key
       is_self_managed = v.certificate != null && v.private_key != null ? true : false

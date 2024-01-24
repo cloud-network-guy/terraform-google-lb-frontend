@@ -97,12 +97,13 @@ variable "ssl_certs" {
     description = optional(string)
     certificate = optional(string)
     private_key = optional(string)
+    region      = optional(string)
   }))
   default = []
 }
 
 variable "ssl_policies" {
-  description = "List SSL Policies"
+  description = "List of SSL/TLS Policies"
   type = list(object({
     create          = optional(bool, true)
     project_id      = optional(string)
@@ -110,6 +111,7 @@ variable "ssl_policies" {
     description     = optional(string)
     min_tls_version = optional(string)
     tls_profile     = optional(string)
+    region          = optional(string)
   }))
   default = []
 }
