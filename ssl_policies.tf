@@ -1,8 +1,11 @@
 locals {
   tls_versions = {
-    "1" = "TLS_1_0"
+    "1"   = "TLS_1_0"
+    "1_0" = "TLS_1_0"
     "1.0" = "TLS_1_0"
+    "1_1" = "TLS_1_1"
     "1.1" = "TLS_1_1"
+    "1_2" = "TLS_1_2"
     "1.2" = "TLS_1_2"
   }
   _ssl_policies = [for i, v in var.ssl_policies :

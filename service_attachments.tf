@@ -14,15 +14,15 @@ locals {
       consumer_reject_lists     = coalesce(v.psc.consumer_reject_lists, [])
       domain_names              = coalesce(v.psc.domain_names, [])
       host_project_id           = coalesce(v.psc.host_project_id, v.host_project_id, v.project_id)
-      nat_subnets               = coalesce(v.psc.nat_subnets, [])
+      nat_subnets               = coalescelist(v.psc.nat_subnets, ["default"])
       forwarding_rule_index_key = v.index_key
     } if v.psc != null
   ]
   service_attachments = [for i, v in local._service_attachments :
     merge(v, {
       connection_preference = v.auto_accept_all_projects && length(v.accept_project_ids) == 0 ? "ACCEPT_AUTOMATIC" : "ACCEPT_MANUAL"
-      nat_subnets = flatten([for nat_subnet in v.nat_subnets :
-        [startswith("projects/", nat_subnet) ? nat_subnet : "${local.nat_subnet_prefix}/${v.host_project_id}/regions/${v.region}/subnetworks/${nat_subnet}"]
+      nat_subnets = flatten([for ns in v.nat_subnets :
+        [startswith("projects/", ns) ? ns : "projects/${v.host_project_id}/regions/${v.region}/subnetworks/${ns}"]
       ])
       accept_project_ids = [for p in v.accept_project_ids :
         {

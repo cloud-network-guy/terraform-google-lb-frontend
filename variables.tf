@@ -16,12 +16,20 @@ variable "network" {
   type    = string
   default = null
 }
+variable "subnet" {
+  type    = string
+  default = null
+}
 variable "name_prefix" {
   type    = string
-  default = "fe"
+  default = null
 }
-variable "lb_frontends" {
-  description = "List of Load Balancer Frontends"
+variable "global_access" {
+  type    = bool
+  default = false
+}
+variable "frontends" {
+  description = "List of Load Balancer Frontends or Forwarding Rules"
   type = list(object({
     create                     = optional(bool, true)
     project_id                 = optional(string)
@@ -31,6 +39,7 @@ variable "lb_frontends" {
     description                = optional(string)
     network                    = optional(string)
     subnet                     = optional(string)
+    default_service            = optional(string)
     backend_service            = optional(string)
     backend_service_id         = optional(string)
     backend_service_project_id = optional(string)
@@ -44,12 +53,19 @@ variable "lb_frontends" {
     allow_global_access        = optional(string)
     enable_ipv4                = optional(bool)
     enable_ipv6                = optional(bool)
+    enable_http                = optional(bool)
+    enable_https               = optional(bool)
+    redirect_http_to_https     = optional(bool)
     ip_address                 = optional(string)
     ip_address_name            = optional(string)
     preserve_ip                = optional(bool)
     ports                      = optional(list(number))
     all_ports                  = optional(bool)
     labels                     = optional(map(string))
+    ssl_certs                  = optional(list(string))
+    ssl_policy                 = optional(string)
+    quic_override              = optional(bool)
+    classic                    = optional(bool)
     psc = optional(object({
       create                   = optional(bool)
       project_id               = optional(string)
@@ -91,13 +107,16 @@ variable "lb_frontends" {
 variable "ssl_certs" {
   description = "List of SSL Certificates to upload to Google Certificate Manager"
   type = list(object({
-    create      = optional(bool, true)
-    project_id  = optional(string)
-    name        = optional(string)
-    description = optional(string)
-    certificate = optional(string)
-    private_key = optional(string)
-    region      = optional(string)
+    create          = optional(bool, true)
+    project_id      = optional(string)
+    name            = optional(string)
+    description     = optional(string)
+    certificate     = optional(string)
+    private_key     = optional(string)
+    region          = optional(string)
+    domains         = optional(list(string))
+    ca_organization = optional(string)
+    ca_valid_years  = optional(number)
   }))
   default = []
 }
