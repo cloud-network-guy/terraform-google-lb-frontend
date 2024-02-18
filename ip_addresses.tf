@@ -1,36 +1,42 @@
 locals {
-  _ip_addresses = [for i, v in local.____forwarding_rules :
-    merge(v, {
-      name            = coalesce(v.address_name, v.name)
+  _ip_addresses = [for i, v in local._forwarding_rules :
+    {
+      create          = coalesce(local.create, true)
+      name            = coalesce(var.ip_address_name, v.name)
       project_id      = v.project_id
       host_project_id = coalesce(v.host_project_id, v.project_id)
-      ip_versions     = v.is_internal || v.is_regional ? ["IPV4"] : concat(v.enable_ipv4 ? ["IPV4"] : [], v.enable_ipv6 ? ["IPV6"] : [])
-    })
+      address_type    = local.type
+      address         = v.ip_address
+      name           = local.ip_address_name
+      is_psc          = v.is_psc
+      is_regional     = v.is_regional
+      region          = local.region
+      network         = "projects/${local.host_project_id}/global/networks/${v.network}"
+      subnetwork      = v.is_regional && v.is_internal ? "projects/${local.host_project_id}/regions/${v.region}/subnetworks/${v.subnet}" : null
+      purpose         = local.is_psc ? "GCE_ENDPOINT" : local.is_application && local.is_internal && local.redirect_http_to_https ? "SHARED_LOADBALANCER_VIP" : null
+      network_tier    = local.is_psc ? null : local.network_tier
+      ip_versions     = local.ip_versions
+    }
   ]
-  ip_addresses = flatten([for i, v in local._ip_addresses :
+  __ip_addresses = flatten([for i, v in local._ip_addresses :
     [for ip_version in v.ip_versions :
-      {
-        project_id    = v.project_id
-        address_type  = v.is_internal ? "INTERNAL" : "EXTERNAL"
-        name          = v.name
-        is_regional   = v.is_regional
-        region        = v.is_regional ? v.region : "global"
-        network       = "projects/${v.host_project_id}/global/networks/${v.network}"
-        subnetwork    = "projects/${v.host_project_id}/regions/${v.region}/subnetworks/${v.subnet}"
-        prefix_length = v.is_regional ? 0 : null
-        purpose       = v.is_psc ? "GCE_ENDPOINT" : v.is_application && v.is_internal && v.redirect_http_to_https ? "SHARED_LOADBALANCER_VIP" : null
-        network_tier  = v.is_psc ? null : v.network_tier
-        address       = v.ip_address
-        ip_version    = ip_version
-        index_key     = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
-      } if v.create == true || coalesce(v.preserve_ip, false) == true
+      merge(v, {
+        name       = local.is_internal ? v.name : "${v.name}-${lower(ip_version)}"
+        ip_version = ip_version
+      })
     ]
   ])
+  ip_addresses = [for i, v in local.__ip_addresses :
+    merge(v, {
+      prefix_length = v.is_regional ? 0 : null
+      index_key     = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
+    }) if v.create == true
+  ]
 }
 
 # Work-around for scenarios where PSC Consumer Endpoint IP changes
 resource "null_resource" "ip_addresses" {
-  for_each = { for i, v in local.ip_addresses : v.index_key => true if v.purpose == "GCE_ENDPOINT" }
+  for_each = { for i, v in local.ip_addresses : v.index_key => true if v.is_psc }
 }
 
 # Regional static IP

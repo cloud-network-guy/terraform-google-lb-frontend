@@ -10,19 +10,19 @@ locals {
   }
   _ssl_policies = [for i, v in var.ssl_policies :
     {
-      create          = coalesce(v.create, true)
-      project_id      = coalesce(v.project_id, var.project_id)
+      create          = coalesce(v.create, local.create, true)
+      project_id      = coalesce(v.project_id, local.project_id)
       name            = lower(trimspace(coalesce(v.name, "ssl-policy-${i}")))
       description     = v.description
-      region          = try(coalesce(v.region, var.region), null)
-      is_regional     = try(coalesce(v.region, var.region), null) != null ? true : false
+      is_regional     = v.region != null ? true : local.is_regional
+      region          = try(coalesce(v.region, local.region), null)
       tls_profile     = upper(trimspace(coalesce(v.tls_profile, "MODERN")))
       min_tls_version = v.min_tls_version != null ? lookup(local.tls_versions, v.min_tls_version, null) : null
     }
   ]
   ssl_policies = [for i, v in local._ssl_policies :
     merge(v, {
-      min_tls_version = upper(trimspace(coalesce(v.min_tls_version, "TLS_1_2"))) # I never did like Poodles
+      min_tls_version = coalesce(v.min_tls_version, upper(trimspace(coalesce(var.min_tls_version, "TLS_1_2"))))
       index_key       = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
     })
   ]

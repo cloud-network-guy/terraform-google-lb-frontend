@@ -1,36 +1,38 @@
 locals {
-  _url_maps = [for frontend in local.forwarding_rules :
+  _url_maps = [
     {
-      create          = coalesce(frontend.create, true)
-      project_id      = frontend.project_id
-      name            = frontend.name
-      is_regional     = frontend.is_regional
-      region          = frontend.region
-      is_application  = frontend.is_application
-      default_service = frontend.default_service
-      routing_rules = [for i, v in coalesce(frontend.routing_rules, []) :
+      create                 = coalesce(local.create, true)
+      project_id             = local.project_id
+      name                   = local.name_prefix
+      is_application         = local.is_application
+      is_regional            = local.is_regional
+      region                 = local.region
+      redirect_http_to_https = local.redirect_http_to_https
+      ssl_certs              = local.ssl_certs
+      routing_rules = [for i, v in coalesce(var.routing_rules, []) :
         {
-          name       = coalesce(frontend.name, "path-matcher-${i + 1}")
-          hosts      = [for host in v.hosts : length(split(".", host)) > 1 ? host : "${host}.${v.domains[0]}"]
-          path_rules = coalesce(v.path_rules, [])
+          project_id                = coalesce(lookup(v, "project_id", null), local.project_id)
+          name                      = coalesce(v.name, "path-matcher-${i + 1}")
+          hosts                     = [for host in v.hosts : length(split(".", host)) > 1 ? host : "${host}.${v.domains[0]}"]
+          path_rules                = coalesce(v.path_rules, [])
+          request_headers_to_remove = v.request_headers_to_remove
+          backend                   = v.backend
         }
       ]
-      redirect_http_to_https = coalesce(frontend.redirect_http_to_https, false)
-      quic_override          = frontend.quic_override
-      ssl_certs              = frontend.ssl_certs
-      ssl_policy             = frontend.ssl_policy
-    } if frontend.is_application == true
+      default_service = var.name_prefix != null ? "${var.name_prefix}-${local.default_service}" : local.default_service
+
+    }
   ]
   url_maps = [for i, v in local._url_maps :
     merge(v, {
-      index_key = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
-    }) if v.create == true
+      index_key = local.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
+    }) if local.create == true && local.is_application == true
   ]
 }
 
 # Global URL Map for HTTP -> HTTPS redirect
 resource "google_compute_url_map" "http-to-https" {
-  for_each        = { for i, v in local.url_maps : v.index_key => v if v.redirect_http_to_https && !v.is_regional }
+  for_each        = { for i, v in local.url_maps : v.index_key => v if v.is_application && v.redirect_http_to_https && !v.is_regional }
   project         = each.value.project_id
   name            = "${each.value.name}-http"
   default_service = null
@@ -42,7 +44,7 @@ resource "google_compute_url_map" "http-to-https" {
 
 # Regional URL Map for HTTP -> HTTPS redirect
 resource "google_compute_region_url_map" "http-to-https" {
-  for_each        = { for i, v in local.url_maps : v.index_key => v if v.redirect_http_to_https && v.is_regional }
+  for_each        = { for i, v in local.url_maps : v.index_key => v if v.is_application && v.redirect_http_to_https && v.is_regional }
   project         = each.value.project_id
   name            = "${each.value.name}-http"
   default_service = null
@@ -60,9 +62,9 @@ resource "google_compute_url_map" "https" {
   name            = "${each.value.name}-https"
   default_service = each.value.default_service
   dynamic "host_rule" {
-    for_each = each.value.host_rule
+    for_each = each.value.routing_rules
     content {
-      path_matcher = host_rule.value.patch_matcher
+      path_matcher = host_rule.value.name
       hosts        = host_rule.value.hosts
     }
   }
@@ -70,12 +72,12 @@ resource "google_compute_url_map" "https" {
     for_each = each.value.routing_rules
     content {
       name            = path_matcher.value.name
-      default_service = lookup(local.backend_ids, coalesce(path_matcher.value.backend, path_matcher.key), null)
+      default_service = coalesce(path_matcher.value.backend, each.value.default_service)
       dynamic "route_rules" {
         for_each = path_matcher.value.request_headers_to_remove != null ? [true] : []
         content {
           priority = coalesce(path_matcher.value.priority, 1)
-          service  = lookup(local.backend_ids, coalesce(path_matcher.value.backend, path_matcher.key), null)
+          service  = try(coalesce(path_matcher.value.backend, path_matcher.key), null)
           match_rules {
             prefix_match = each.value.prefix_match
           }

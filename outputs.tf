@@ -13,6 +13,7 @@ output "forwarding_rules" {
 output "ip_addresses" {
   value = [for i, v in local.ip_addresses : (v.is_regional ? google_compute_address.default[v.index_key].address :
   google_compute_global_address.default[v.index_key].address)]
+  #value = local.http_https_ports
 }
 
 output "ssl_certs" {

@@ -1,12 +1,12 @@
 locals {
-  nat_subnet_prefix = "https://www.googleapis.com/compute/v1/projects"
   _service_attachments = [for i, v in local.forwarding_rules :
     {
-      is_regional               = v.is_regional
+      create                    = coalesce(local.create, true)
       project_id                = v.project_id
-      name                      = coalesce(v.psc.name, v.name)
-      description               = coalesce(v.psc.description, "PSC Publish for '${v.name}'")
+      name                      = coalesce(var.psc.name, v.name)
+      is_regional               = v.is_regional
       region                    = v.region
+      description               = coalesce(v.psc.description, "PSC Publish for '${v.name}'")
       reconcile_connections     = coalesce(v.psc.reconcile_connections, true)
       enable_proxy_protocol     = coalesce(v.psc.enable_proxy_protocol, false)
       auto_accept_all_projects  = coalesce(v.psc.auto_accept_all_projects, false)
@@ -16,7 +16,7 @@ locals {
       host_project_id           = coalesce(v.psc.host_project_id, v.host_project_id, v.project_id)
       nat_subnets               = coalescelist(v.psc.nat_subnets, ["default"])
       forwarding_rule_index_key = v.index_key
-    } if v.psc != null
+    } if var.psc != null
   ]
   service_attachments = [for i, v in local._service_attachments :
     merge(v, {
@@ -57,4 +57,7 @@ resource "google_compute_service_attachment" "default" {
   consumer_reject_lists = each.value.consumer_reject_lists
   domain_names          = each.value.domain_names
   reconcile_connections = each.value.reconcile_connections
+  depends_on = [
+    google_compute_forwarding_rule.default,
+  ]
 }

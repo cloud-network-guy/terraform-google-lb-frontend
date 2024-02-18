@@ -1,90 +1,66 @@
 
 locals {
-  _forwarding_rules = [for i, v in var.frontends :
-    merge(v, {
-      create                 = coalesce(v.create, true)
-      project_id             = coalesce(v.project_id, var.project_id)
-      host_project_id        = try(coalesce(v.host_project_id, var.host_project_id), null)
-      name                   = lower(trimspace(coalesce(v.name, "backend-${i}")))
-      description            = coalesce(v.description, "Managed by Terraform")
-      region                 = try(coalesce(v.region, var.region), null)
-      ports                  = coalesce(v.ports, [])
-      all_ports              = coalesce(v.all_ports, false)
-      network                = coalesce(v.network, var.network, "default")
-      subnet                 = coalesce(v.subnet, var.subnet, "default")
-      labels                 = { for k, v in coalesce(v.labels, {}) : k => lower(replace(v, " ", "_")) }
-      ip_address             = v.ip_address
-      address_name           = v.ip_address_name
-      enable_ipv4            = coalesce(v.enable_ipv4, true)
-      enable_ipv6            = coalesce(v.enable_ipv6, false)
-      preserve_ip            = coalesce(v.preserve_ip, false)
+  _forwarding_rules = [
+    {
+      create                 = coalesce(local.create, true)
+      project_id             = local.project_id
+      host_project_id        = local.host_project_id
+      name                   = coalesce(var.forwarding_rule_name, var.name, local.name_prefix)
+      is_internal            = local.is_internal
+      is_psc                 = local.is_psc
+      is_regional            = local.is_regional
+      region                 = local.is_regional ? local.region : null
+      is_application         = local.is_application
+      ports                  = local.ports
+      all_ports              = local.is_psc || length(local.ports) > 0 ? false : local.all_ports
+      network                = local.network
+      subnet                 = local.subnet
+      network_tier           = local.is_psc ? null : local.network_tier
+      labels                 = local.labels
+      ip_address             = local.ip_address
+      address_name           = local.ip_address_name
+      enable_ipv4            = local.enable_ipv4
+      enable_ipv6            = local.enable_ipv6
+      preserve_ip            = local.preserve_ip
       is_mirroring_collector = false # TODO
-      allow_global_access    = coalesce(v.allow_global_access, false)
-      backend_service        = try(coalesce(v.backend_service_id, v.backend_service, v.backend_service_name), null)
-      target                 = try(coalesce(v.target_id, v.target, v.target_name), null)
-      is_classic             = false # TODO
-      default_service        = v.default_service
-      /*
-      target_region          = v.target_region
-      target_project_id      = v.target_project_id
-      psc                    = v.psc
-      routing_rules          = lookup(v, "routing_rules", null)
-      enable_http            = lookup(v, "enable_http", null)
-      enable_https           = lookup(v, "enable_https", null)
-      redirect_http_to_https = lookup(v, "redirect_http_to_https", null)
-      quic_override          = lookup(v, "quic_override", null)
-      #port_range             = lookup(v, "port_range", null)
-      */
-    }) if v.create == true || coalesce(v.preserve_ip, false) == true
+      is_classic             = local.is_classic
+      ip_protocol            = local.is_psc || local.ip_protocol == "HTTP" ? null : local.ip_protocol
+      allow_global_access    = local.is_internal && !local.is_psc ? local.allow_global_access : null
+      load_balancing_scheme  = local.is_application && !local.is_classic ? "${local.type}_MANAGED" : local.type
+      http_https_ports       = local.is_application ? concat(local.enable_http || local.redirect_http_to_https ? [local.http_port] : [], local.enable_https ? [local.https_port] : []) : []
+      backend_service        = local.is_application ? null : local.default_service
+    }
   ]
-  __forwarding_rules = [for i, v in local._forwarding_rules :
-    merge(v, {
-      name            = var.name_prefix != null ? "${var.name_prefix}-${v.name}" : v.name
-      is_regional     = try(coalesce(v.region, v.target_region, v.subnet), null) != null ? true : false
-      is_internal     = lookup(v, "subnet", null) != null || var.subnet != null ? true : false
-      ip_protocol     = length(v.ports) > 0 || v.all_ports ? "TCP" : "HTTP"
-      is_psc          = lookup(v, "target_id", null) != null || v.target != null ? true : false
-      target          = v.backend_service == null ? v.target : null
-      target_region   = try(coalesce(v.target_region, v.region != null ? v.region : null), null)
-      host_project_id = coalesce(v.host_project_id, v.project_id)
-    })
-  ]
+  __forwarding_rules = flatten([for i, v in local._forwarding_rules :
+    [for ip_port in setproduct(local.ip_versions, v.is_application ? v.http_https_ports : [0]) :
+      merge(v, {
+        port_range  = v.is_application ? ip_port[1] : null
+        name        = v.is_application ? "${v.name}-${lower(ip_port[0])}-${ip_port[1]}" : v.name
+        address_key = v.is_regional? "${v.project_id}/${v.region}/${v.address_name}" : "${v.project_id}/${v.address_name}"
+        target      = "projects/${v.project_id}/${(v.is_regional ? "regions/${v.region}" : "global")}/targetHttp${(ip_port[1] != 80 ? "s" : "")}Proxies/${v.name}-${(ip_port[1] == 80 ? "http" : "https")}"
+      })
+    ]
+  ])
   ___forwarding_rules = [for i, v in local.__forwarding_rules :
     merge(v, {
-      is_application = v.ip_protocol == "HTTP" ? true : false
-      network_tier   = v.ip_protocol == "HTTP" && !v.is_internal ? "STANDARD" : null
-      network        = "projects/${v.host_project_id}/global/networks/${v.network}"
-      subnetwork     = "projects/${v.host_project_id}/regions/${v.region}/subnetworks/${v.subnet}"
-      ip_protocol    = v.is_psc || v.ip_protocol == "HTTP" ? null : v.ip_protocol
-      all_ports      = v.is_psc || length(v.ports) > 0 ? false : v.all_ports
-      #target       = v.is_regional ? (contains(["TCP", "SSL"], v.ip_protocol) ? (v.is_psc ? v.target : null) : null) : null
-      type   = v.is_internal ? "INTERNAL" : "EXTERNAL"
-      target = v.ip_protocol == "HTTP" ? "projects/${v.project_id}/regions/${v.region}/targetHttpsProxies/${v.name}-https" : null
+      ip_address = coalesce(
+        v.is_psc ? google_compute_address.default["${v.project_id}/${v.region}/${v.address_name}"].self_link : null,
+        v.ip_address,
+        v.is_regional ? google_compute_address.default[v.address_key].self_link : null,
+        !v.is_regional ? google_compute_global_address.default[v.address_key].self_link : null,
+      "192.0.2.123") # null address will allocate & use emphem IP
+      target = v.is_application ? v.target : null
     })
   ]
-  ____forwarding_rules = [for i, v in local.___forwarding_rules :
+  forwarding_rules = [for i, v in local.___forwarding_rules :
     merge(v, {
-      routing_rules          = v.is_application ? v.routing_rules : null
-      redirect_http_to_https = v.is_application ? coalesce(v.redirect_http_to_https, true) : false
-      port_range             = v.is_application && v.enable_https ? 443 : null
-      region                 = v.is_regional ? coalesce(v.region, v.target_region) : null
-      load_balancing_scheme  = v.is_application && !v.is_classic ? "${v.type}_MANAGED" : v.type
-      allow_global_access    = v.is_internal && !v.is_psc ? v.allow_global_access : null
-      backend_service = !v.is_application && v.backend_service != null ? (startswith(v.backend_service, "projects/") ? v.backend_service : (
-        "projects/${v.project_id}/${(v.is_regional ? "regions/${v.region}" : "global")}/backendServices/${v.backend_service}"
-      )) : null
       target = v.target != null ? (startswith(v.target, "projects/") ? v.target : (
         v.is_psc ? "projects/${v.target_project_id}/${(v.is_regional ? "regions/${v.target_region}" : "global")}/serviceAttachments/${v.target}" : null
       )) : null
-    })
-  ]
-  forwarding_rules = [
-    for i, v in local.____forwarding_rules :
-    merge(v, {
-      ip_address            = v.is_psc ? google_compute_address.default["${v.project_id}/${v.region}/${v.address_name}"].self_link : v.ip_address
       load_balancing_scheme = v.is_psc ? "" : v.load_balancing_scheme
+      subnetwork            = v.is_psc ? null : v.is_internal ? local.subnet : null
       index_key             = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
-    })
+    }) if v.create == true
   ]
 }
 
