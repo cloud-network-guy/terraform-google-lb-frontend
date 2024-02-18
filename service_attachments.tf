@@ -16,7 +16,7 @@ locals {
       host_project_id           = coalesce(v.psc.host_project_id, v.host_project_id, v.project_id)
       nat_subnets               = coalescelist(v.psc.nat_subnets, ["default"])
       forwarding_rule_index_key = v.index_key
-    } if var.psc != null
+    } if v.psc != null
   ]
   service_attachments = [for i, v in local._service_attachments :
     merge(v, {

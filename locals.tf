@@ -19,7 +19,7 @@ locals {
   subnet                 = coalesce(var.subnet, "default")
   labels                 = { for k, v in coalesce(var.labels, {}) : k => lower(replace(v, " ", "_")) }
   ip_address             = var.ip_address
-  ip_address_name         = coalesce(var.ip_address_name, local.name_prefix)
+  ip_address_name        = coalesce(var.ip_address_name, local.name_prefix)
   enable_ipv4            = coalesce(var.enable_ipv4, true)
   enable_ipv6            = coalesce(var.enable_ipv6, false)
   ip_versions            = local.is_internal || local.is_regional ? ["IPV4"] : concat(local.enable_ipv4 ? ["IPV4"] : [], local.enable_ipv6 ? ["IPV6"] : [])

@@ -29,6 +29,7 @@ locals {
       load_balancing_scheme  = local.is_application && !local.is_classic ? "${local.type}_MANAGED" : local.type
       http_https_ports       = local.is_application ? concat(local.enable_http || local.redirect_http_to_https ? [local.http_port] : [], local.enable_https ? [local.https_port] : []) : []
       backend_service        = local.is_application ? null : local.default_service
+      psc                    = var.psc
     }
   ]
   __forwarding_rules = flatten([for i, v in local._forwarding_rules :
@@ -36,7 +37,7 @@ locals {
       merge(v, {
         port_range  = v.is_application ? ip_port[1] : null
         name        = v.is_application ? "${v.name}-${lower(ip_port[0])}-${ip_port[1]}" : v.name
-        address_key = v.is_regional? "${v.project_id}/${v.region}/${v.address_name}" : "${v.project_id}/${v.address_name}"
+        address_key = v.is_regional ? "${v.project_id}/${v.region}/${v.address_name}" : "${v.project_id}/${v.address_name}"
         target      = "projects/${v.project_id}/${(v.is_regional ? "regions/${v.region}" : "global")}/targetHttp${(ip_port[1] != 80 ? "s" : "")}Proxies/${v.name}-${(ip_port[1] == 80 ? "http" : "https")}"
       })
     ]

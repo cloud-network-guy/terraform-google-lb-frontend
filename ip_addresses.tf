@@ -7,7 +7,7 @@ locals {
       host_project_id = coalesce(v.host_project_id, v.project_id)
       address_type    = local.type
       address         = v.ip_address
-      name           = local.ip_address_name
+      name            = local.ip_address_name
       is_psc          = v.is_psc
       is_regional     = v.is_regional
       region          = local.region
