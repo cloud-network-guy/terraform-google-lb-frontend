@@ -1,4 +1,11 @@
 locals {
+  http_response_codes = {
+    301 = "MOVED_PERMANENTLY_DEFAULT"
+    302 = "FOUND"
+    303 = "SEE_OTHER"
+    307 = "TEMPORARY_REDIRECT"
+    308 = "PERMANENT_REDIRECT"
+  }
   _url_maps = [
     {
       create                 = coalesce(local.create, true)
@@ -97,7 +104,7 @@ resource "google_compute_url_map" "https" {
         for_each = path_matcher.value.redirect != null ? [path_matcher.value.redirect] : []
         content {
           host_redirect          = coalesce(default_url_redirect.value.host, "whamola.net")
-          redirect_response_code = coalesce(default_url_redirect.value.code, "PERMANENT_REDIRECT")
+          redirect_response_code = upper(startswith(default_url_redirect.value.code, "3") ? default_url_redirect.value.code : lookup(local.http_response_codes, default_url_redirect.value.code, "MOVED_PERMANENTLY_DEFAULT"))
           https_redirect         = coalesce(default_url_redirect.value.https, true)
           strip_query            = coalesce(default_url_redirect.value.strip_query, false)
         }

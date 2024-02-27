@@ -223,7 +223,7 @@ variable "routing_rules" {
     path                      = optional(string)
     request_headers_to_remove = optional(list(string))
     redirect = optional(object({
-      code        = optional(number)
+      code        = optional(string)
       host        = optional(string)
       https       = optional(string)
       strip_query = optional(bool)
