@@ -152,6 +152,10 @@ variable "min_tls_version" {
   type    = string
   default = null
 }
+variable "ssl_policy" {
+ type = string
+ default = null
+}
 variable "psc" {
   description = "Parameters to Publish this Frontend via PSC"
   type = object({
