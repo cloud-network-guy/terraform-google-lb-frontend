@@ -21,7 +21,6 @@ locals {
         }
       ]
       default_service = var.name_prefix != null ? "${var.name_prefix}-${local.default_service}" : local.default_service
-
     }
   ]
   url_maps = [for i, v in local._url_maps :
@@ -73,7 +72,7 @@ resource "google_compute_url_map" "https" {
     for_each = each.value.routing_rules
     content {
       name            = path_matcher.value.name
-      default_service = coalesce(path_matcher.value.backend, each.value.default_service)
+      default_service = path_matcher.value.redirect != null ? null : coalesce(path_matcher.value.backend, each.value.default_service)
       dynamic "route_rules" {
         for_each = path_matcher.value.request_headers_to_remove != null ? [true] : []
         content {
