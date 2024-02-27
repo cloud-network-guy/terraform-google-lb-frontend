@@ -2,9 +2,9 @@ locals {
   _ip_addresses = [for i, v in local._forwarding_rules :
     {
       create          = coalesce(local.create, true)
-      name            = coalesce(var.ip_address_name, v.name)
       project_id      = v.project_id
       host_project_id = coalesce(v.host_project_id, v.project_id)
+      forwarding_rule_name = v.name
       address_type    = local.type
       address         = v.ip_address
       name            = local.ip_address_name

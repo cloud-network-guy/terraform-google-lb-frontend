@@ -144,6 +144,10 @@ variable "https_port" {
   type    = number
   default = null
 }
+variable "ssl_certificates" {
+  type    = list(string)
+  default = null
+}
 variable "min_tls_version" {
   type    = string
   default = null

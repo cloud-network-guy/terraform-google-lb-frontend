@@ -3,7 +3,7 @@ locals {
     {
       create                 = coalesce(local.create, true)
       project_id             = local.project_id
-      name                   = local.name_prefix
+      name                   = coalesce(var.url_map_name, var.name, local.name_prefix)
       is_application         = local.is_application
       is_regional            = local.is_regional
       region                 = local.region

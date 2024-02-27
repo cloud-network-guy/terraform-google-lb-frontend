@@ -26,7 +26,7 @@ locals {
       is_classic             = local.is_classic
       ip_protocol            = local.is_psc || local.ip_protocol == "HTTP" ? null : local.ip_protocol
       allow_global_access    = local.is_internal && !local.is_psc ? local.allow_global_access : null
-      load_balancing_scheme  = local.is_application && !local.is_classic ? "${local.type}_MANAGED" : local.type
+      load_balancing_scheme  = local.load_balancing_scheme
       http_https_ports       = local.is_application ? concat(local.enable_http || local.redirect_http_to_https ? [local.http_port] : [], local.enable_https ? [local.https_port] : []) : []
       backend_service        = local.is_application ? null : local.default_service
       psc                    = var.psc
@@ -36,8 +36,9 @@ locals {
     [for ip_port in setproduct(local.ip_versions, v.is_application ? v.http_https_ports : [0]) :
       merge(v, {
         port_range  = v.is_application ? ip_port[1] : null
-        name        = v.is_application ? "${v.name}-${lower(ip_port[0])}-${ip_port[1]}" : v.name
-        address_key = v.is_regional ? "${v.project_id}/${v.region}/${v.address_name}" : "${v.project_id}/${v.address_name}"
+        name        = v.is_application && !v.is_internal ? "${v.name}-${lower(ip_port[0])}-${ip_port[1]}" : v.name
+        #address_key = v.is_regional ? "${v.project_id}/${v.region}/${v.address_name}" : "${v.project_id}/${v.address_name}"
+        address_key = one([ for _ in local.ip_addresses : _.index_key if _.forwarding_rule_name == v.name && coalesce(_.region, "global") == coalesce(v.region, "global") && _.ip_version == upper(ip_port[0])])
         target      = "projects/${v.project_id}/${(v.is_regional ? "regions/${v.region}" : "global")}/targetHttp${(ip_port[1] != 80 ? "s" : "")}Proxies/${v.name}-${(ip_port[1] == 80 ? "http" : "https")}"
       })
     ]
