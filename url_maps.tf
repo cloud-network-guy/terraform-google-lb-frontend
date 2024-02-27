@@ -12,11 +12,12 @@ locals {
       routing_rules = [for i, v in coalesce(var.routing_rules, []) :
         {
           project_id                = coalesce(lookup(v, "project_id", null), local.project_id)
-          name                      = coalesce(v.name, "path-matcher-${i + 1}")
+          name                      = coalesce(v.name, "path-matcher-${i+1}")
           hosts                     = [for host in v.hosts : length(split(".", host)) > 1 ? host : "${host}.${v.domains[0]}"]
           path_rules                = coalesce(v.path_rules, [])
           request_headers_to_remove = v.request_headers_to_remove
           backend                   = v.backend
+          redirect                  = lookup(v, "redirect", null)
         }
       ]
       default_service = var.name_prefix != null ? "${var.name_prefix}-${local.default_service}" : local.default_service
@@ -91,6 +92,15 @@ resource "google_compute_url_map" "https" {
         content {
           paths   = path_rule.value.paths
           service = path_rule.value.backend
+        }
+      }
+      dynamic "default_url_redirect" {
+        for_each = path_matcher.value.redirect != null ? [true] : []
+        content {
+          host_redirect = "blah.com"
+          redirect_response_code = "PERMANENT_REDIRECT"
+          https_redirect = true
+          strip_query    = false
         }
       }
     }

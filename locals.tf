@@ -37,7 +37,7 @@ locals {
   is_classic             = coalesce(var.classic, false)
   is_psc                 = var.target != null ? true : false
   # Convert SSL certificates list to full URLs
-  ssl_certificates = var.ssl_certificates != null ?[for _ in var.ssl_certificates :
+  ssl_certificates = var.ssl_certificates != null ? [for _ in var.ssl_certificates :
     coalesce(
       startswith(_, local.url_prefix) ? _ : null,
       startswith(_, "projects/") ? "https://www.googleapis.com/compute/v1/${_}" : null,

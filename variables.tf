@@ -153,8 +153,8 @@ variable "min_tls_version" {
   default = null
 }
 variable "ssl_policy" {
- type = string
- default = null
+  type    = string
+  default = null
 }
 variable "psc" {
   description = "Parameters to Publish this Frontend via PSC"
@@ -222,6 +222,11 @@ variable "routing_rules" {
     backend                   = optional(string)
     path                      = optional(string)
     request_headers_to_remove = optional(list(string))
+    redirect = optional(object({
+      host        = optional(string)
+      strip_query = optional(bool)
+      code        = optional(number)
+    }))
     path_rules = optional(list(object({
       paths        = list(string)
       backend_name = optional(string)

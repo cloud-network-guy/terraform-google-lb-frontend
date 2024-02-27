@@ -17,15 +17,15 @@ output "ip_addresses" {
 }
 
 output "ipv4_address" {
-  value = one([for i, v in local.ip_addresses : 
-  (v.is_regional ? google_compute_address.default[v.index_key].address : google_compute_global_address.default[v.index_key].address)  if v.ip_version == "IPV4"
-  ]) 
+  value = one([for i, v in local.ip_addresses :
+    (v.is_regional ? google_compute_address.default[v.index_key].address : google_compute_global_address.default[v.index_key].address) if v.ip_version == "IPV4"
+  ])
 }
 
 output "ipv6_address" {
-  value = one([for i, v in local.ip_addresses : 
-  (v.is_regional ? google_compute_address.default[v.index_key].address : google_compute_global_address.default[v.index_key].address) if v.ip_version == "IPV6"
-  ] ) 
+  value = one([for i, v in local.ip_addresses :
+    (v.is_regional ? google_compute_address.default[v.index_key].address : google_compute_global_address.default[v.index_key].address) if v.ip_version == "IPV6"
+  ])
 }
 
 output "ssl_certs" {

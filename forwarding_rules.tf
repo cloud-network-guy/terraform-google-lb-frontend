@@ -35,10 +35,10 @@ locals {
   __forwarding_rules = flatten([for i, v in local._forwarding_rules :
     [for ip_port in setproduct(local.ip_versions, v.is_application ? v.http_https_ports : [0]) :
       merge(v, {
-        port_range  = v.is_application ? ip_port[1] : null
-        name        = v.is_application && !v.is_internal ? "${v.name}-${lower(ip_port[0])}-${ip_port[1]}" : v.name
+        port_range = v.is_application ? ip_port[1] : null
+        name       = v.is_application && !v.is_internal ? "${v.name}-${lower(ip_port[0])}-${ip_port[1]}" : v.name
         #address_key = v.is_regional ? "${v.project_id}/${v.region}/${v.address_name}" : "${v.project_id}/${v.address_name}"
-        address_key = one([ for _ in local.ip_addresses : _.index_key if _.forwarding_rule_name == v.name && coalesce(_.region, "global") == coalesce(v.region, "global") && _.ip_version == upper(ip_port[0])])
+        address_key = one([for _ in local.ip_addresses : _.index_key if _.forwarding_rule_name == v.name && coalesce(_.region, "global") == coalesce(v.region, "global") && _.ip_version == upper(ip_port[0])])
         target      = "projects/${v.project_id}/${(v.is_regional ? "regions/${v.region}" : "global")}/targetHttp${(ip_port[1] != 80 ? "s" : "")}Proxies/${v.name}-${(ip_port[1] == 80 ? "http" : "https")}"
       })
     ]
