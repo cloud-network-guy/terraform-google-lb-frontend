@@ -22,7 +22,7 @@ locals {
       #ssl_certificates = [for ssl_cert in v.ssl_certificates :
       #  startswith(ssl_cert, local.url_prefix) ? ssl_cert : "${local.url_prefix}/${v.project_id}/${v.is_regional ? "regions/${v.region}" : "global"}/sslCertificates/${ssl_cert}"
       #]
-      ssl_policy = startswith(ssl_cert, local.url_prefix) ? ssl_policy : "${local.url_prefix}/${v.project_id}/${v.is_regional ? "regions/${v.region}" : "global"}/sslPolicies/${ssl_policy}"
+      ssl_policy = startswith(v.ssl_policy, local.url_prefix) ? v.ssl_policy : "${local.url_prefix}/${v.project_id}/${v.is_regional ? "regions/${v.region}" : "global"}/sslPolicies/${v.ssl_policy}"
       index_key = local.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
     }) if v.create == true
   ]
