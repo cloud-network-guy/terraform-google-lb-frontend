@@ -94,10 +94,10 @@ resource "google_compute_url_map" "https" {
         }
       }
       dynamic "default_url_redirect" {
-        for_each = path_matcher.value.redirect != null ? [true] : []
+        for_each = path_matcher.value.redirect != null ? [path_matcher.value.redirect] : []
         content {
-          host_redirect          = coalesce(default_url_redirect.value.host, "whamola.net")
-          redirect_response_code = coalesce(default_url_redirect.value.code, "PERMANENT_REDIRECT")
+          host_redirect          = coalesce(default_url_redirect.value.redirect.host, "whamola.net")
+          redirect_response_code = coalesce(default_url_redirect.value.redirect.code, "PERMANENT_REDIRECT")
           https_redirect         = coalesce(default_url_redirect.value.https, true)
           strip_query            = coalesce(default_url_redirect.value.strip_query, false)
         }
