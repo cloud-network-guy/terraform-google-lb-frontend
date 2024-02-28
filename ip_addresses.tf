@@ -9,8 +9,9 @@ locals {
       address              = v.ip_address
       name                 = local.ip_address_name
       is_psc               = v.is_psc
-      is_regional          = v.is_regional
-      region               = local.region
+      is_regional     = local.region != "global" ? true : false
+            region                 = local.is_regional ? local.region : null
+      is_internal = local.is_internal
       network              = "projects/${local.host_project_id}/global/networks/${v.network}"
       subnetwork           = v.is_regional && v.is_internal ? "projects/${local.host_project_id}/regions/${v.region}/subnetworks/${v.subnet}" : null
       purpose              = local.is_psc ? "GCE_ENDPOINT" : local.is_application && local.is_internal && local.redirect_http_to_https ? "SHARED_LOADBALANCER_VIP" : null
@@ -21,7 +22,7 @@ locals {
   __ip_addresses = flatten([for i, v in local._ip_addresses :
     [for ip_version in v.ip_versions :
       merge(v, {
-        name       = local.is_internal ? v.name : "${v.name}-${lower(ip_version)}"
+        name       = v.is_internal ? v.name : "${v.name}-${lower(ip_version)}"
         ip_version = ip_version
       })
     ]

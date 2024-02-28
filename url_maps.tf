@@ -12,8 +12,8 @@ locals {
       project_id             = local.project_id
       name                   = coalesce(var.url_map_name, var.name, local.name_prefix)
       is_application         = local.is_application
-      is_regional            = local.is_regional
-      region                 = local.region
+      is_regional            = local.region != "global" ? true : false
+      region                 = local.is_regional ? local.region : null
       redirect_http_to_https = local.redirect_http_to_https
       ssl_certs              = local.ssl_certs
       routing_rules = [for i, v in coalesce(var.routing_rules, []) :
@@ -32,8 +32,8 @@ locals {
   ]
   url_maps = [for i, v in local._url_maps :
     merge(v, {
-      index_key = local.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
-    }) if local.create == true && local.is_application == true
+      index_key = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
+    }) if v.create == true && v.is_application == true
   ]
 }
 
@@ -60,6 +60,11 @@ resource "google_compute_region_url_map" "http-to-https" {
     strip_query    = false
   }
   region = each.value.region
+}
+
+# Create null resource for each URL Map so Terraform knows it must delete existing before creating new
+resource "null_resource" "https" {
+  for_each = { for i, v in local.url_maps : v.index_key => true }
 }
 
 # Global HTTPS URL MAP
@@ -103,7 +108,7 @@ resource "google_compute_url_map" "https" {
       dynamic "default_url_redirect" {
         for_each = path_matcher.value.redirect != null ? [path_matcher.value.redirect] : []
         content {
-          host_redirect          = coalesce(default_url_redirect.value.host, "whamola.net")
+          host_redirect          = coalesce(default_url_redirect.value.host, "nowhere.net")
           redirect_response_code = upper(startswith(default_url_redirect.value.code, "3") ? lookup(local.http_response_codes, default_url_redirect.value.code, "MOVED_PERMANENTLY_DEFAULT") : default_url_redirect.value.code)
           https_redirect         = coalesce(default_url_redirect.value.https, true)
           strip_query            = coalesce(default_url_redirect.value.strip_query, false)
@@ -111,6 +116,7 @@ resource "google_compute_url_map" "https" {
       }
     }
   }
+  depends_on = [null_resource.https]
 }
 
 # Regional HTTPS URL MAP
@@ -130,7 +136,7 @@ resource "google_compute_region_url_map" "https" {
     for_each = each.value.routing_rules
     content {
       name            = path_matcher.value.name
-      default_service = coalesce(try(local.backend_ids[path_matcher.value.backend], null), local.default_service_id)
+      default_service = path_matcher.value.redirect != null ? null : coalesce(path_matcher.value.backend, each.value.default_service)
       dynamic "path_rule" {
         for_each = path_matcher.value.path_rules
         content {
@@ -138,7 +144,24 @@ resource "google_compute_region_url_map" "https" {
           service = path_rule.value.backend
         }
       }
+      dynamic "path_rule" {
+        for_each = path_matcher.value.path_rules
+        content {
+          paths   = path_rule.value.paths
+          service = path_rule.value.backend
+        }
+      }
+      dynamic "default_url_redirect" {
+        for_each = path_matcher.value.redirect != null ? [path_matcher.value.redirect] : []
+        content {
+          host_redirect          = coalesce(default_url_redirect.value.host, "nowhere.net")
+          redirect_response_code = upper(startswith(default_url_redirect.value.code, "3") ? lookup(local.http_response_codes, default_url_redirect.value.code, "MOVED_PERMANENTLY_DEFAULT") : default_url_redirect.value.code)
+          https_redirect         = coalesce(default_url_redirect.value.https, true)
+          strip_query            = coalesce(default_url_redirect.value.strip_query, false)
+        }
+      }
     }
   }
   region = each.value.region
+  depends_on = [null_resource.https]
 }

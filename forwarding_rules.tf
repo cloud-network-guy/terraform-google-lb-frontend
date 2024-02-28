@@ -8,7 +8,7 @@ locals {
       name                   = coalesce(var.forwarding_rule_name, var.name, local.name_prefix)
       is_internal            = local.is_internal
       is_psc                 = local.is_psc
-      is_regional            = local.is_regional
+      is_regional            = local.region != "global" ? true : false
       region                 = local.is_regional ? local.region : null
       is_application         = local.is_application
       ports                  = local.ports

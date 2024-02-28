@@ -4,8 +4,8 @@ locals {
       create                 = coalesce(local.create, true)
       project_id             = local.project_id
       name                   = coalesce(var.target_proxy_name, var.name, local.name_prefix)
-      is_regional            = local.is_regional
-      region                 = local.region
+      is_regional            = local.region != "global" ? true : false
+      region                 = local.is_regional ? local.region : null
       is_application         = local.is_application
       backend_service        = !local.is_application ? local.default_service : null
       url_map                = local.is_regional ? "projects/${v.project_id}/regions/${v.region}/urlMaps/${v.name}" : "projects/${v.project_id}/global/urlMaps/${v.name}"
@@ -23,7 +23,7 @@ locals {
       #  startswith(ssl_cert, local.url_prefix) ? ssl_cert : "${local.url_prefix}/${v.project_id}/${v.is_regional ? "regions/${v.region}" : "global"}/sslCertificates/${ssl_cert}"
       #]
       ssl_policy = v.ssl_policy != null ? startswith(v.ssl_policy, local.url_prefix) ? v.ssl_policy : "${local.url_prefix}/${v.project_id}/${v.is_regional ? "regions/${v.region}" : "global"}/sslPolicies/${v.ssl_policy}" : null
-      index_key  = local.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
+      index_key  = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
     }) if v.create == true
   ]
 }

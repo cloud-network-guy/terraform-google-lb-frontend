@@ -6,6 +6,7 @@ locals {
   name_prefix            = var.name_prefix != null ? lower(trimspace(var.name_prefix)) : null
   name                   = var.name != null ? lower(trimspace(var.name)) : null
   description            = coalesce(var.description, "Managed by Terraform")
+  is_regional            = var.region != null && var.region != "global" ? true : var.subnet != null ? true : false
   region                 = local.is_regional ? var.region : "global"
   redirect_http_to_https = coalesce(var.redirect_http_to_https, local.enable_http ? true : false)
   ports                  = coalesce(var.ports, [])
@@ -29,7 +30,6 @@ locals {
   allow_global_access    = coalesce(var.global_access, false)
   target                 = try(coalesce(var.target, var.target_name), null)
   default_service        = var.default_service
-  is_regional            = try(coalesce(var.region, var.target_region, var.subnet), null) != null ? true : false
   is_internal            = var.subnet != null ? true : false
   network_tier           = local.ip_protocol == "HTTP" && !local.is_internal ? "STANDARD" : null
   type                   = local.is_internal ? "INTERNAL" : "EXTERNAL"

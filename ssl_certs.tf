@@ -6,8 +6,8 @@ locals {
       name            = v.name != null ? lower(trimspace(replace(v.name, "_", "-"))) : "ssl-cert"
       name_prefix     = null #local.name_prefix
       description     = v.description
-      is_regional     = v.region != null ? true : local.is_regional
-      region          = try(coalesce(v.region, local.region), null)
+      is_regional            = local.region != "global" ? true : false
+      region                 = local.is_regional ? local.region : null
       certificate     = lookup(v, "certificate", null) == null ? null : length(v.certificate) < 256 ? file("./${v.certificate}") : v.certificate
       private_key     = lookup(v, "private_key", null) == null ? null : length(v.private_key) < 256 ? file("./${v.private_key}") : v.private_key
       is_self_managed = lookup(v, "certificate", null) != null && lookup(v, "private_key", null) != null ? true : false

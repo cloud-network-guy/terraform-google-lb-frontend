@@ -14,8 +14,8 @@ locals {
       project_id      = coalesce(v.project_id, local.project_id)
       name            = lower(trimspace(coalesce(v.name, "ssl-policy-${i}")))
       description     = v.description
-      is_regional     = v.region != null ? true : local.is_regional
-      region          = try(coalesce(v.region, local.region), null)
+      is_regional            = local.region != "global" ? true : false
+      region                 = local.is_regional ? local.region : null
       tls_profile     = upper(trimspace(coalesce(v.tls_profile, "MODERN")))
       min_tls_version = v.min_tls_version != null ? lookup(local.tls_versions, v.min_tls_version, null) : null
     }
