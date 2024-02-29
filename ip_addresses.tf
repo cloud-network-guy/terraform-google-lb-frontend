@@ -9,9 +9,9 @@ locals {
       address              = v.ip_address
       name                 = local.ip_address_name
       is_psc               = v.is_psc
-      is_regional     = local.region != "global" ? true : false
-            region                 = local.is_regional ? local.region : null
-      is_internal = local.is_internal
+      is_regional          = local.region != "global" ? true : false
+      region               = local.is_regional ? local.region : null
+      is_internal          = local.is_internal
       network              = "projects/${local.host_project_id}/global/networks/${v.network}"
       subnetwork           = v.is_regional && v.is_internal ? "projects/${local.host_project_id}/regions/${v.region}/subnetworks/${v.subnet}" : null
       purpose              = local.is_psc ? "GCE_ENDPOINT" : local.is_application && local.is_internal && local.redirect_http_to_https ? "SHARED_LOADBALANCER_VIP" : null

@@ -4,8 +4,8 @@ locals {
       create                    = coalesce(local.create, true)
       project_id                = v.project_id
       name                      = coalesce(var.psc.name, v.name)
-      is_regional            = local.region != "global" ? true : false
-      region                 = local.is_regional ? local.region : null
+      is_regional               = local.region != "global" ? true : false
+      region                    = local.is_regional ? local.region : null
       description               = coalesce(v.psc.description, "PSC Publish for '${v.name}'")
       reconcile_connections     = coalesce(v.psc.reconcile_connections, true)
       enable_proxy_protocol     = coalesce(v.psc.enable_proxy_protocol, false)

@@ -162,6 +162,6 @@ resource "google_compute_region_url_map" "https" {
       }
     }
   }
-  region = each.value.region
+  region     = each.value.region
   depends_on = [null_resource.https]
 }

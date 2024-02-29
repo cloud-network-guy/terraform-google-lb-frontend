@@ -30,6 +30,7 @@ locals {
       http_https_ports       = local.is_application ? concat(local.enable_http || local.redirect_http_to_https ? [local.http_port] : [], local.enable_https ? [local.https_port] : []) : []
       backend_service        = local.is_application ? null : local.default_service
       psc                    = var.psc
+      source_ip_ranges       = [] # TODO
     }
   ]
   __forwarding_rules = flatten([for i, v in local._forwarding_rules :
@@ -86,6 +87,7 @@ resource "google_compute_forwarding_rule" "default" {
   subnetwork             = each.value.is_psc ? null : each.value.subnetwork
   network_tier           = each.value.network_tier
   allow_global_access    = each.value.allow_global_access
+  source_ip_ranges       = each.value.source_ip_ranges
   depends_on = [
     google_compute_address.default,
     google_compute_region_target_tcp_proxy.default,
@@ -105,6 +107,7 @@ resource "google_compute_global_forwarding_rule" "default" {
   load_balancing_scheme = each.value.load_balancing_scheme
   ip_protocol           = each.value.ip_protocol
   labels                = each.value.labels
+  source_ip_ranges      = each.value.source_ip_ranges
   depends_on = [
     google_compute_global_address.default,
     google_compute_target_tcp_proxy.default,
