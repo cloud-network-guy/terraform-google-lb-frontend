@@ -2,27 +2,34 @@ locals {
   _ip_addresses = [for i, v in local._forwarding_rules :
     {
       create               = coalesce(local.create, true)
-      project_id           = v.project_id
-      host_project_id      = coalesce(v.host_project_id, v.project_id)
+      project_id           = local.project_id
+      host_project_id      = local.host_project_id
       forwarding_rule_name = v.name
       address_type         = local.type
-      address              = v.ip_address
-      name                 = local.ip_address_name
-      is_psc               = v.is_psc
-      is_regional          = local.region != "global" ? true : false
-      region               = local.is_regional ? local.region : null
-      is_internal          = local.is_internal
-      network              = "projects/${local.host_project_id}/global/networks/${v.network}"
-      subnetwork           = v.is_regional && v.is_internal ? "projects/${local.host_project_id}/regions/${v.region}/subnetworks/${v.subnet}" : null
-      purpose              = local.is_psc ? "GCE_ENDPOINT" : local.is_application && local.is_internal && local.redirect_http_to_https ? "SHARED_LOADBALANCER_VIP" : null
-      network_tier         = local.is_psc ? null : local.network_tier
-      ip_versions          = local.ip_versions
+      name         = local.ip_address_name
+      is_psc       = v.is_psc
+      is_regional  = v.is_regional
+      region       = v.region
+      is_internal  = local.is_internal
+      network      = "projects/${local.host_project_id}/global/networks/${v.network}"
+      subnetwork   = v.is_regional && v.is_internal ? "projects/${local.host_project_id}/regions/${v.region}/subnetworks/${v.subnet}" : null
+      purpose      = local.is_psc ? "GCE_ENDPOINT" : local.is_application && local.is_internal && local.redirect_http_to_https ? "SHARED_LOADBALANCER_VIP" : null
+      network_tier = local.is_psc ? null : local.network_tier
+      #ip_versions          = local.ip_versions
     }
   ]
   __ip_addresses = flatten([for i, v in local._ip_addresses :
-    [for ip_version in v.ip_versions :
+    [for ip_version in local.ip_versions :
       merge(v, {
-        name       = v.is_internal ? v.name : "${v.name}-${lower(ip_version)}"
+        name = v.is_internal ? v.name : coalesce(
+          ip_version == "IPV4" ? try(coalesce(var.ipv4_address_name, var.ip_address_name), null) : null,
+          ip_version == "IPV6" ? try(coalesce(var.ipv6_address_name, var.ip_address_name), null) : null,
+          "${v.name}-${lower(ip_version)}"
+        )
+        address = try(coalesce(
+          ip_version == "IPV4" ? try(coalesce(var.ipv4_address, var.ip_address), null) : null,
+          ip_version == "IPV6" ? try(coalesce(var.ipv6_address, var.ip_address), null) : null,
+        ), null)
         ip_version = ip_version
       })
     ]
@@ -31,7 +38,7 @@ locals {
     merge(v, {
       prefix_length = v.is_regional ? 0 : null
       index_key     = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
-    }) if v.create == true
+    }) if v.create == true && v.name != null
   ]
 }
 

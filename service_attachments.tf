@@ -5,7 +5,7 @@ locals {
       project_id                = v.project_id
       name                      = coalesce(var.psc.name, v.name)
       is_regional               = local.region != "global" ? true : false
-      region                    = local.is_regional ? local.region : null
+      region                    = local.region
       description               = coalesce(v.psc.description, "PSC Publish for '${v.name}'")
       reconcile_connections     = coalesce(v.psc.reconcile_connections, true)
       enable_proxy_protocol     = coalesce(v.psc.enable_proxy_protocol, false)
@@ -21,8 +21,8 @@ locals {
   service_attachments = [for i, v in local._service_attachments :
     merge(v, {
       connection_preference = v.auto_accept_all_projects && length(v.accept_project_ids) == 0 ? "ACCEPT_AUTOMATIC" : "ACCEPT_MANUAL"
-      nat_subnets = flatten([for ns in v.nat_subnets :
-        [startswith("projects/", ns) ? ns : "projects/${v.host_project_id}/regions/${v.region}/subnetworks/${ns}"]
+      nat_subnets = flatten([for _ in v.nat_subnets :
+        [startswith("projects/", _) ? _ : "projects/${v.host_project_id}/regions/${v.region}/subnetworks/${_}"]
       ])
       accept_project_ids = [for p in v.accept_project_ids :
         {
@@ -36,7 +36,7 @@ locals {
   ]
 }
 
-# Service Attachment (PSC Publish)
+# Service Attachment aka PSC Publishing
 resource "google_compute_service_attachment" "default" {
   for_each              = { for k, v in local.service_attachments : v.index_key => v if v.is_regional }
   project               = each.value.project_id

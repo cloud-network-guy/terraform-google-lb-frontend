@@ -16,6 +16,10 @@ variable "region" {
   type        = string
   default     = null
 }
+variable "type" {
+  type    = string
+  default = null
+}
 variable "network" {
   type    = string
   default = null
@@ -100,7 +104,23 @@ variable "forwarding_rule_name" {
   type    = string
   default = null
 }
-variable "target_proxy_name" {
+variable "ipv4_forwarding_rule_name" {
+  type    = string
+  default = null
+}
+variable "ipv6_forwarding_rule_name" {
+  type    = string
+  default = null
+}
+variable "target_tcp_proxy_name" {
+  type    = string
+  default = null
+}
+variable "target_http_proxy_name" {
+  type    = string
+  default = null
+}
+variable "target_https_proxy_name" {
   type    = string
   default = null
 }
@@ -144,15 +164,15 @@ variable "https_port" {
   type    = number
   default = null
 }
-variable "ssl_certificates" {
-  type    = list(string)
-  default = null
-}
 variable "min_tls_version" {
   type    = string
   default = null
 }
-variable "ssl_policy" {
+variable "existing_ssl_certs" {
+  type    = list(string)
+  default = null
+}
+variable "existing_ssl_policy" {
   type    = string
   default = null
 }
@@ -197,22 +217,22 @@ variable "ssl_certs" {
   default = []
 }
 
-variable "ssl_policies" {
-  description = "List of SSL/TLS Policies"
-  type = list(object({
-    create          = optional(bool, true)
+variable "ssl_policy" {
+  description = "Custom TLS policy"
+  type = object({
+    create          = optional(bool)
     project_id      = optional(string)
     name            = optional(string)
     description     = optional(string)
     min_tls_version = optional(string)
     tls_profile     = optional(string)
     region          = optional(string)
-  }))
-  default = []
+  })
+  default = null
 }
 
 variable "routing_rules" {
-  description = "List of Routing Rules for URL Maps"
+  description = "List of Routing Rules for the URL Map"
   type = list(object({
     create                    = optional(bool, true)
     project_id                = optional(string)

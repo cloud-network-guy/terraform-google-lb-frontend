@@ -6,73 +6,78 @@ locals {
     307 = "TEMPORARY_REDIRECT"
     308 = "PERMANENT_REDIRECT"
   }
-  _url_maps = [
+  _url_maps = local.is_application ? [
     {
-      create                 = coalesce(local.create, true)
+      create                 = local.create
       project_id             = local.project_id
-      name                   = coalesce(var.url_map_name, var.name, local.name_prefix)
+      type = local.type
+      base_name              = coalesce(var.url_map_name, local.base_name)
       is_application         = local.is_application
-      is_regional            = local.region != "global" ? true : false
-      region                 = local.is_regional ? local.region : null
+      is_regional            = local.is_regional
+      region                 = local.region
       redirect_http_to_https = local.redirect_http_to_https
       ssl_certs              = local.ssl_certs
+      default_url_redirect   = local.redirect_http_to_https ? true : false
       routing_rules = [for i, v in coalesce(var.routing_rules, []) :
         {
-          project_id                = coalesce(lookup(v, "project_id", null), local.project_id)
+          #project_id                = coalesce(lookup(v, "project_id", null), local.project_id)
           name                      = coalesce(v.name, "path-matcher-${i + 1}")
           hosts                     = [for host in v.hosts : length(split(".", host)) > 1 ? host : "${host}.${v.domains[0]}"]
           path_rules                = coalesce(v.path_rules, [])
           request_headers_to_remove = v.request_headers_to_remove
-          backend                   = v.backend
+          backend                   = var.name_prefix != null ? "${var.name_prefix}-${v.backend}" : v.backend
           redirect                  = lookup(v, "redirect", null)
         }
       ]
       default_service = var.name_prefix != null ? "${var.name_prefix}-${local.default_service}" : local.default_service
     }
+  ] : []
+  http_url_maps = local.redirect_http_to_https ? [for i, v in local._url_maps :
+    merge(v, {
+      protocol             = "http"
+      name                 = "${v.base_name}-http"
+      default_service      = null
+      default_url_redirect = true
+      https_redirect       = true #length(v.routing_rules) > 0 ? lookup(v.routing_rules.redirect, "https", true) : true
+      strip_query          = false #length(v.routing_rules) > 0 ? lookup(v.routing_rules.redirect, "strip_query", false) : false
+      routing_rules = []
+    })
+  ] : []
+  https_url_maps = [for i, v in local._url_maps :
+    merge(v, {
+      protocol             = "https"
+      name                 = "${v.base_name}-https"
+      default_service      = var.name_prefix != null ? "${var.name_prefix}-${local.default_service}" : local.default_service
+      default_url_redirect = false
+      https_redirect       = null
+      strip_query          = null
+    })
   ]
-  url_maps = [for i, v in local._url_maps :
+  url_maps = [for i, v in concat(local.http_url_maps, local.https_url_maps) :
     merge(v, {
       index_key = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
-    }) if v.create == true && v.is_application == true
+    }) if v.create == true
   ]
-}
-
-# Global URL Map for HTTP -> HTTPS redirect
-resource "google_compute_url_map" "http-to-https" {
-  for_each        = { for i, v in local.url_maps : v.index_key => v if v.is_application && v.redirect_http_to_https && !v.is_regional }
-  project         = each.value.project_id
-  name            = "${each.value.name}-http"
-  default_service = null
-  default_url_redirect {
-    https_redirect = true
-    strip_query    = false
-  }
-}
-
-# Regional URL Map for HTTP -> HTTPS redirect
-resource "google_compute_region_url_map" "http-to-https" {
-  for_each        = { for i, v in local.url_maps : v.index_key => v if v.is_application && v.redirect_http_to_https && v.is_regional }
-  project         = each.value.project_id
-  name            = "${each.value.name}-http"
-  default_service = null
-  default_url_redirect {
-    https_redirect = true
-    strip_query    = false
-  }
-  region = each.value.region
 }
 
 # Create null resource for each URL Map so Terraform knows it must delete existing before creating new
-resource "null_resource" "https" {
+resource "null_resource" "url_maps" {
   for_each = { for i, v in local.url_maps : v.index_key => true }
 }
 
 # Global HTTPS URL MAP
-resource "google_compute_url_map" "https" {
+resource "google_compute_url_map" "default" {
   for_each        = { for i, v in local.url_maps : v.index_key => v if !v.is_regional }
   project         = each.value.project_id
-  name            = "${each.value.name}-https"
+  name            = each.value.name
   default_service = each.value.default_service
+  dynamic "default_url_redirect" {
+    for_each = each.value.default_url_redirect ? [true] : []
+    content {
+      https_redirect = each.value.https_redirect
+      strip_query    = each.value.strip_query
+    }
+  }
   dynamic "host_rule" {
     for_each = each.value.routing_rules
     content {
@@ -116,15 +121,22 @@ resource "google_compute_url_map" "https" {
       }
     }
   }
-  depends_on = [null_resource.https]
+  depends_on = [null_resource.url_maps]
 }
 
 # Regional HTTPS URL MAP
-resource "google_compute_region_url_map" "https" {
+resource "google_compute_region_url_map" "default" {
   for_each        = { for i, v in local.url_maps : v.index_key => v if v.is_regional }
   project         = each.value.project_id
-  name            = "${each.value.name}-https"
+  name            = each.value.name
   default_service = each.value.default_service
+  dynamic "default_url_redirect" {
+    for_each = each.value.default_url_redirect ? [true] : []
+    content {
+      https_redirect = each.value.https_redirect
+      strip_query    = each.value.strip_query
+    }
+  }
   dynamic "host_rule" {
     for_each = each.value.routing_rules
     content {
@@ -163,5 +175,5 @@ resource "google_compute_region_url_map" "https" {
     }
   }
   region     = each.value.region
-  depends_on = [null_resource.https]
+  depends_on = [null_resource.url_maps]
 }

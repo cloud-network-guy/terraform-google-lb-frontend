@@ -8,23 +8,24 @@ locals {
     "1_2" = "TLS_1_2"
     "1.2" = "TLS_1_2"
   }
-  _ssl_policies = [for i, v in var.ssl_policies :
+  _ssl_policies = var.ssl_policy != null || var.min_tls_version != null ? [
     {
-      create          = coalesce(v.create, local.create, true)
-      project_id      = coalesce(v.project_id, local.project_id)
-      name            = lower(trimspace(coalesce(v.name, "ssl-policy-${i}")))
-      description     = v.description
-      is_regional     = local.region != "global" ? true : false
-      region          = local.is_regional ? local.region : null
-      tls_profile     = upper(trimspace(coalesce(v.tls_profile, "MODERN")))
-      min_tls_version = v.min_tls_version != null ? lookup(local.tls_versions, v.min_tls_version, null) : null
+      create          = coalesce(lookup(var.ssl_policy, "create", null), local.create)
+      project_id      = lower(trimspace(coalesce(lookup(var.ssl_policy, "project_id", null), local.project_id)))
+      name            = lower(trimspace(coalesce(lookup(var.ssl_policy, "name", null), local.base_name)))
+      is_regional     = local.is_regional
+      region          = local.region
+      description     = lookup(var.ssl_policy, "description", null) != null ? trimspace(var.ssl_policy.description) : null
+      tls_profile     = upper(trimspace(coalesce(lookup(var.ssl_policy, "tls_profile", null), "MODERN")))
+      min_tls_version = upper(trimspace(coalesce(lookup(var.ssl_policy, "min_tls_version", null), var.min_tls_version, "TLS_1_2")))
+      region          = lower(trimspace(coalesce(lookup(var.ssl_policy, "region", null), local.region)))
     }
-  ]
+  ] : []
   ssl_policies = [for i, v in local._ssl_policies :
     merge(v, {
-      min_tls_version = coalesce(v.min_tls_version, upper(trimspace(coalesce(var.min_tls_version, "TLS_1_2"))))
+      min_tls_version = startswith(v.min_tls_version, "TLS_") ? v.min_tls_version : lookup(local.tls_versions, v.min_tls_version, "TLS_1_2")
       index_key       = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
-    })
+    }) if v.create == true
   ]
 }
 

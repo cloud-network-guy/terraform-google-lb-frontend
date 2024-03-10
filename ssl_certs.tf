@@ -1,16 +1,17 @@
 locals {
   _ssl_certs = [for i, v in var.ssl_certs :
     {
-      create          = coalesce(v.create, local.create, true)
+      create          = coalesce(v.create, local.create)
       project_id      = coalesce(v.project_id, local.project_id)
-      name            = v.name != null ? lower(trimspace(replace(v.name, "_", "-"))) : "ssl-cert"
-      name_prefix     = null #local.name_prefix
-      description     = v.description
-      is_regional     = local.region != "global" ? true : false
-      region          = local.is_regional ? local.region : null
+      is_application  = local.is_application
+      region          = local.region
+      is_regional     = local.is_regional
+      name            = lookup(v, "name", null) != null ? lower(trimspace(replace(v.name, "_", "-"))) : local.base_name
+      description     = lookup(v, "description", null) != null ? trimspace(v.description) : null
       certificate     = lookup(v, "certificate", null) == null ? null : length(v.certificate) < 256 ? file("./${v.certificate}") : v.certificate
       private_key     = lookup(v, "private_key", null) == null ? null : length(v.private_key) < 256 ? file("./${v.private_key}") : v.private_key
       is_self_managed = lookup(v, "certificate", null) != null && lookup(v, "private_key", null) != null ? true : false
+      name_prefix     = null
       domains         = coalesce(v.domains, [])
       ca_valid_years  = v.ca_valid_years
       ca_organization = v.ca_organization
@@ -19,7 +20,7 @@ locals {
   ssl_certs = [for i, v in local._ssl_certs :
     merge(v, {
       is_self_signed  = v.certificate == null && v.private_key == null ? true : false
-      is_self_managed = v.certificate == null && v.private_key == null ? true : v.is_self_managed # Self-signed certs will be self-managed as well
+      is_self_managed = v.certificate == null && v.private_key == null ? true : v.is_self_managed
       index_key       = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
     }) if v.create == true
   ]
