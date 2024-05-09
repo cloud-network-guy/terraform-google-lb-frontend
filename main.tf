@@ -15,8 +15,8 @@ locals {
   name                   = var.name != null ? lower(trimspace(replace(var.name, "_", "-"))) : one(random_string.random_name).result
   base_name              = var.name_prefix != null ? "${lower(trimspace(var.name_prefix))}-${local.name}" : local.name
   description            = trimspace(coalesce(var.description, "Managed by Terraform"))
-  is_regional     = var.region != null && var.region != "global" ? true : false
-  region          = local.is_regional ? var.region : "global"
+  is_regional            = var.region != null && var.region != "global" ? true : false
+  region                 = local.is_regional ? var.region : "global"
   redirect_http_to_https = coalesce(var.redirect_http_to_https, local.enable_http ? true : false)
   ports                  = coalesce(var.ports, [])
   http_port              = coalesce(var.http_port, 80)
@@ -41,7 +41,7 @@ locals {
   default_service        = var.default_service
   is_internal            = var.subnet != null ? true : false
   network_tier           = local.ip_protocol == "HTTP" && !local.is_internal ? "STANDARD" : null
-  type            = upper(coalesce(var.type != null ? var.type : "EXTERNAL"))
+  type                   = upper(coalesce(var.type != null ? var.type : "EXTERNAL"))
   load_balancing_scheme  = local.is_application && !local.is_classic ? "${local.type}_MANAGED" : local.type
   is_classic             = coalesce(var.classic, false)
   is_psc                 = var.target != null ? true : false

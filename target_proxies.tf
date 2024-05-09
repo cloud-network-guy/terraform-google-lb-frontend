@@ -57,19 +57,19 @@ locals {
       quic_override = upper(trimspace(coalesce(var.quic_override, "NONE")))
       ssl_policy = coalesce(
         var.existing_ssl_policy,
-        v.is_regional ?one([for _ in local.ssl_policies : "${local.url_prefix}/${_.project_id}/regions/${local.region}/sslPolicies/${_.name}"]) : null,
+        v.is_regional ? one([for _ in local.ssl_policies : "${local.url_prefix}/${_.project_id}/regions/${local.region}/sslPolicies/${_.name}"]) : null,
         !v.is_regional ? one([for _ in local.ssl_policies : "${local.url_prefix}/${_.project_id}/global/sslPolicies/${_.name}"]) : null,
       )
       ssl_certificates = concat(
         local.existing_ssl_certs,
-        [for _ in local.ssl_certs: "${local.url_prefix}/${_.project_id}/${local.is_regional ? "regions/" : ""}${local.region}/sslCertificates/${_.name}"]
+        [for _ in local.ssl_certs : "${local.url_prefix}/${_.project_id}/${local.is_regional ? "regions/" : ""}${local.region}/sslCertificates/${_.name}"]
       )
     })
   ]
   target_https_proxies = [for i, v in local.__target_https_proxies :
     merge(v, {
       ssl_policy = startswith(v.ssl_policy, local.url_prefix) ? v.ssl_policy : "${local.url_prefix}/${local.project_id}/${local.is_regional ? "regions/" : ""}${local.region}/sslPolicies/${v.ssl_policy}"
-      url_map   = v.is_regional ? google_compute_region_url_map.default[v.url_map_index_key].self_link : google_compute_url_map.default[v.url_map_index_key].self_link
+      url_map    = v.is_regional ? google_compute_region_url_map.default[v.url_map_index_key].self_link : google_compute_url_map.default[v.url_map_index_key].self_link
       index_key  = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
     }) if v.create == true
   ]

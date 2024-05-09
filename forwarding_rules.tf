@@ -5,7 +5,7 @@ locals {
       project_id             = local.project_id
       host_project_id        = local.host_project_id
       name                   = coalesce(var.forwarding_rule_name, local.base_name)
-      type = local.type
+      type                   = local.type
       is_internal            = local.is_internal
       is_psc                 = local.is_psc
       is_regional            = local.is_regional

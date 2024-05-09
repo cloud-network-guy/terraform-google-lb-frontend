@@ -10,7 +10,7 @@ locals {
     {
       create                 = local.create
       project_id             = local.project_id
-      type = local.type
+      type                   = local.type
       base_name              = coalesce(var.url_map_name, local.base_name)
       is_application         = local.is_application
       is_regional            = local.is_regional
@@ -38,9 +38,9 @@ locals {
       name                 = "${v.base_name}-http"
       default_service      = null
       default_url_redirect = true
-      https_redirect       = true #length(v.routing_rules) > 0 ? lookup(v.routing_rules.redirect, "https", true) : true
+      https_redirect       = true  #length(v.routing_rules) > 0 ? lookup(v.routing_rules.redirect, "https", true) : true
       strip_query          = false #length(v.routing_rules) > 0 ? lookup(v.routing_rules.redirect, "strip_query", false) : false
-      routing_rules = []
+      routing_rules        = []
     })
   ] : []
   https_url_maps = [for i, v in local._url_maps :
