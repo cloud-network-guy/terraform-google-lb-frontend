@@ -59,7 +59,7 @@ locals {
         v.is_regional ? google_compute_address.default[v.address_key].address : null,
         !v.is_regional ? google_compute_global_address.default[v.address_key].address : null,
       ), null) # null address will allocate & use emphem IP
-      target = v.is_application ? v.target : null
+      target = v.is_application || v.is_psc ? v.target : null
     })
   ]
   forwarding_rules = [for i, v in local.___forwarding_rules :
