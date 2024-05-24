@@ -4,7 +4,7 @@ locals {
       create                 = coalesce(local.create, true)
       project_id             = local.project_id
       host_project_id        = local.host_project_id
-      target_name            = var.target_name
+      target_name            = coalesce(var.target_name, "none")
       target_project_id      = local.project_id
       target                 = local.target
       name                   = coalesce(var.forwarding_rule_name, local.base_name)
