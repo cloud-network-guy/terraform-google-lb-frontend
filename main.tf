@@ -21,8 +21,9 @@ locals {
   ports                  = coalesce(var.ports, [])
   http_port              = coalesce(var.http_port, 80)
   https_port             = coalesce(var.https_port, 443)
+  is_psc                 = var.target != null ? true : false
   all_ports              = coalesce(var.all_ports, false)
-  ip_protocol            = length(local.ports) > 0 || local.all_ports ? "TCP" : "HTTP"
+  ip_protocol            = length(local.ports) > 0 || local.all_ports || local.is_psc ? "TCP" : "HTTP"
   is_application         = local.ip_protocol == "HTTP" ? true : false
   enable_http            = local.ip_protocol == "HTTP" ? coalesce(var.enable_http, false) : false
   enable_https           = local.ip_protocol == "HTTP" ? coalesce(var.enable_https, true) : false
@@ -44,7 +45,6 @@ locals {
   type                   = upper(coalesce(var.type != null ? var.type : "EXTERNAL"))
   load_balancing_scheme  = local.is_application && !local.is_classic ? "${local.type}_MANAGED" : local.type
   is_classic             = coalesce(var.classic, false)
-  is_psc                 = var.target != null ? true : false
   # Convert SSL certificates list to full URLs
   existing_ssl_certs = var.existing_ssl_certs != null ? [for _ in var.existing_ssl_certs :
     coalesce(
