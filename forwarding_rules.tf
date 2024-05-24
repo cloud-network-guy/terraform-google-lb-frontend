@@ -4,6 +4,7 @@ locals {
       create                 = coalesce(local.create, true)
       project_id             = local.project_id
       host_project_id        = local.host_project_id
+      target_project_id      = local.project_id
       name                   = coalesce(var.forwarding_rule_name, local.base_name)
       type                   = local.type
       is_internal            = local.is_internal
@@ -31,7 +32,6 @@ locals {
       backend_service        = local.is_application ? null : local.default_service
       psc                    = var.psc
       source_ip_ranges       = [] # TODO
-      target                 = "blah"
     }
   ]
   __forwarding_rules = flatten([for i, v in local._forwarding_rules :
