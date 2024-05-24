@@ -38,7 +38,7 @@ locals {
   preserve_ip            = coalesce(var.preserve_ip, false)
   is_mirroring_collector = false # TODO
   allow_global_access    = coalesce(var.global_access, false)
-  target                 = try(coalesce(var.target, var.target_name), null)
+  target                 = try(coalesce(var.target, var.target_name), "none")
   default_service        = var.default_service
   is_internal            = var.subnet != null ? true : false
   network_tier           = local.ip_protocol == "HTTP" && !local.is_internal ? "STANDARD" : null
