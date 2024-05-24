@@ -4,6 +4,7 @@ locals {
       create                 = coalesce(local.create, true)
       project_id             = local.project_id
       host_project_id        = local.host_project_id
+      target_name            = var.target_name
       target_project_id      = local.project_id
       target                 = local.target
       name                   = coalesce(var.forwarding_rule_name, local.base_name)
@@ -62,7 +63,7 @@ locals {
   ]
   forwarding_rules = [for i, v in local.___forwarding_rules :
     merge(v, {
-      target                = v.is_psc && v.target == null ? "${local.url_prefix}/${v.target_project_id}/${local.is_regional ? "regions/" : ""}${local.region}/serviceAttachments/${v.target}" : v.target
+      target                = v.is_psc && v.target == null ? "${local.url_prefix}/${v.target_project_id}/${local.is_regional ? "regions/" : ""}${local.region}/serviceAttachments/${v.target_name}" : v.target
       load_balancing_scheme = v.is_psc ? "" : v.load_balancing_scheme # null doesn't work with PSC forwarding rules
       subnetwork            = v.is_psc ? null : v.is_internal ? local.subnet : null
       index_key             = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"
