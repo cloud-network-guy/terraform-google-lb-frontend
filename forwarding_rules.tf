@@ -40,9 +40,8 @@ locals {
   __forwarding_rules = flatten([for i, v in local._forwarding_rules :
     [for ip_port in setproduct(local.ip_versions, v.is_application ? v.http_https_ports : [0]) :
       merge(v, {
-        port_range = v.is_application ? ip_port[1] : null
-        name       = v.is_application ? "${v.name}${local.enable_ipv6 ? "-${lower(ip_port[0])}" : ""}-${lookup(local.port_names, ip_port[1], "error")}" : v.name
-        #address_key = v.is_regional ? "${v.project_id}/${v.region}/${v.address_name}" : "${v.project_id}/${v.address_name}"
+        port_range  = v.is_application ? ip_port[1] : null
+        name        = v.is_application ? "${v.name}${local.enable_ipv6 ? "-${lower(ip_port[0])}" : ""}-${lookup(local.port_names, ip_port[1], "error")}" : v.name
         address_key = one([for _ in local.ip_addresses : _.index_key if _.forwarding_rule_name == v.name && _.region == v.region && _.ip_version == upper(ip_port[0])])
         target      = startswith(v.target, local.url_prefix) ? v.target : "${local.url_prefix}/${v.project_id}/${local.is_regional ? "regions/" : ""}${local.region}/targetHttp${(ip_port[1] != 80 ? "s" : "")}Proxies/${v.name}-${lookup(local.port_names, ip_port[1], "error")}"
         ip_version  = ip_port[0]
@@ -58,13 +57,13 @@ locals {
         v.ip_address,
         v.is_regional ? google_compute_address.default[v.address_key].address : null,
         !v.is_regional ? google_compute_global_address.default[v.address_key].address : null,
-      ), null) # null address will allocate & use emphem IP
+      ), null) # null address will allocate & use ephemeral IP
       target = v.is_application || v.is_psc ? v.target : null
     })
   ]
   forwarding_rules = [for i, v in local.___forwarding_rules :
     merge(v, {
-      target                = v.is_psc ? v.target : null              # ? "${local.url_prefix}/${v.target_project_id}/${local.is_regional ? "regions/" : ""}${local.region}/serviceAttachments/${v.target_name}" : v.target
+      #target                = v.is_psc ? v.target : null              # ? "${local.url_prefix}/${v.target_project_id}/${local.is_regional ? "regions/" : ""}${local.region}/serviceAttachments/${v.target_name}" : v.target
       load_balancing_scheme = v.is_psc ? "" : v.load_balancing_scheme # null doesn't work with PSC forwarding rules
       subnetwork            = v.is_psc ? null : v.is_internal ? local.subnet : null
       index_key             = v.is_regional ? "${v.project_id}/${v.region}/${v.name}" : "${v.project_id}/${v.name}"

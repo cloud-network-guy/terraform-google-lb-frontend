@@ -39,3 +39,10 @@ output "ipv6_address" {
 output "ssl_certs" {
   value = local.ssl_certs
 }
+
+output "debug" {
+  value = {
+    forwarding_rules = local.forwarding_rules
+    ssl_certs        = local.ssl_certs
+  }
+}
