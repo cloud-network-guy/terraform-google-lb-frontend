@@ -57,12 +57,13 @@ locals {
       quic_override = upper(trimspace(coalesce(var.quic_override, "NONE")))
       ssl_policy = coalesce(
         var.existing_ssl_policy,
-        v.is_regional ? one([for _ in local.ssl_policies : "${local.url_prefix}/${_.project_id}/regions/${local.region}/sslPolicies/${_.name}"]) : null,
-        !v.is_regional ? one([for _ in local.ssl_policies : "${local.url_prefix}/${_.project_id}/global/sslPolicies/${_.name}"]) : null,
+        v.is_regional ? one([for _ in local.ssl_policies : google_compute_region_ssl_policy.default[_.index.key].self_link]) : null,
+        !v.is_regional ? one([for _ in local.ssl_policies : google_compute_ssl_policy.default[_.index.key].self_link]) : null,
       )
       ssl_certificates = concat(
         local.existing_ssl_certs,
-        [for _ in local.ssl_certs : "${local.url_prefix}/${_.project_id}/${local.is_regional ? "regions/" : ""}${local.region}/sslCertificates/${_.name}"]
+        v.is_regional ? [for _ in local.ssl_certs : google_compute_region_ssl_certificate.default[_.index_key].self_link] : [],
+        !v.is_regional ? [for _ in local.ssl_certs : google_compute_ssl_certificate.default[_.index_key].self_link] : [],
       )
     })
   ]
@@ -86,7 +87,6 @@ resource "google_compute_target_https_proxy" "default" {
   quic_override    = each.value.quic_override
   depends_on = [
     google_compute_url_map.default,
-    google_compute_ssl_certificate.default,
     google_compute_ssl_policy.default,
     null_resource.ssl_certs,
   ]
@@ -103,7 +103,6 @@ resource "google_compute_region_target_https_proxy" "default" {
   region           = each.value.region
   depends_on = [
     google_compute_region_url_map.default,
-    google_compute_region_ssl_certificate.default,
     google_compute_region_ssl_policy.default,
     null_resource.ssl_certs,
   ]
