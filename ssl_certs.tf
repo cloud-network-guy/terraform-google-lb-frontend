@@ -70,7 +70,8 @@ resource "google_compute_ssl_certificate" "default" {
   certificate = each.value.is_self_signed ? tls_self_signed_cert.default[each.value.index_key].cert_pem : each.value.certificate
   private_key = each.value.is_self_signed ? tls_private_key.default[each.value.index_key].private_key_pem : each.value.private_key
   lifecycle {
-    create_before_destroy = true
+    create_before_destroy = false
+    ignore_changes        = [certificate, private_key]
   }
   depends_on = [null_resource.ssl_certs]
 }
@@ -85,7 +86,8 @@ resource "google_compute_region_ssl_certificate" "default" {
   certificate = each.value.is_self_signed ? tls_self_signed_cert.default[each.value.index_key].cert_pem : each.value.certificate
   private_key = each.value.is_self_signed ? tls_private_key.default[each.value.index_key].private_key_pem : each.value.private_key
   lifecycle {
-    create_before_destroy = true
+    create_before_destroy = false
+    ignore_changes        = [certificate, private_key]
   }
   region     = each.value.region
   depends_on = [null_resource.ssl_certs]
