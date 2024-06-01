@@ -72,6 +72,10 @@ variable "enable_ipv6" {
   type    = bool
   default = null
 }
+variable "create_static_ip" {
+  type    = bool
+  default = null
+}
 variable "ip_address" {
   type    = string
   default = null

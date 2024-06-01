@@ -21,6 +21,7 @@ locals {
       network_tier            = local.is_psc ? null : local.network_tier
       labels                  = length(local.labels) > 0 ? local.labels : null
       ip_address              = local.ip_address
+      create_static_ip        = local.create_static_ip
       address_name            = local.ip_address_name
       enable_ipv4             = local.enable_ipv4
       enable_ipv6             = local.enable_ipv6

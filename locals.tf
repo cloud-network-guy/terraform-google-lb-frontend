@@ -30,6 +30,7 @@ locals {
   network                = lower(trimspace(coalesce(var.network, "default")))
   subnet                 = lower(trimspace(coalesce(var.subnet, "default")))
   labels                 = { for k, v in coalesce(var.labels, {}) : k => lower(replace(v, " ", "_")) }
+  create_static_ip       = coalesce(var.create_static_ip, true)
   ip_address             = var.ip_address
   ip_address_name        = coalesce(var.ip_address_name, local.base_name)
   enable_ipv4            = coalesce(var.enable_ipv4, true)

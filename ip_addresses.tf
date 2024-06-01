@@ -16,7 +16,7 @@ locals {
       purpose              = local.is_psc ? "GCE_ENDPOINT" : local.is_application && local.is_internal && local.redirect_http_to_https ? "SHARED_LOADBALANCER_VIP" : null
       network_tier         = local.is_psc ? null : local.network_tier
       #ip_versions          = local.ip_versions
-    }
+    } if v.create_static_ip == true
   ]
   __ip_addresses = flatten([for i, v in local._ip_addresses :
     [for ip_version in local.ip_versions :
