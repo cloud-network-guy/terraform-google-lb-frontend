@@ -57,8 +57,8 @@ locals {
       quic_override = upper(trimspace(coalesce(var.quic_override, "NONE")))
       ssl_policy = coalesce(
         var.existing_ssl_policy,
-        v.is_regional ? one([for _ in local.ssl_policies : google_compute_region_ssl_policy.default[_.index.key].self_link]) : null,
-        !v.is_regional ? one([for _ in local.ssl_policies : google_compute_ssl_policy.default[_.index.key].self_link]) : null,
+        v.is_regional ? one([for _ in local.ssl_policies : google_compute_region_ssl_policy.default[_.index_key].self_link]) : null,
+        !v.is_regional ? one([for _ in local.ssl_policies : google_compute_ssl_policy.default[_.index_key].self_link]) : null,
       )
       ssl_certificates = concat(
         local.existing_ssl_certs,
