@@ -92,6 +92,10 @@ variable "ip_address_name" {
   type    = string
   default = null
 }
+variable "ip_address_description" {
+  type    = string
+  default = null
+}
 variable "ipv4_address_name" {
   type    = string
   default = null

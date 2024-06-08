@@ -7,6 +7,7 @@ locals {
       forwarding_rule_name = v.name
       address_type         = local.type
       name                 = local.ip_address_name
+      description          = var.ip_address_description
       is_psc               = v.is_psc
       is_regional          = v.is_regional
       region               = v.region
@@ -52,6 +53,7 @@ resource "google_compute_address" "default" {
   for_each      = { for i, v in local.ip_addresses : v.index_key => v if v.is_regional }
   project       = each.value.project_id
   name          = each.value.name
+  description   = each.value.description
   address_type  = each.value.address_type
   ip_version    = each.value.ip_version
   address       = each.value.address

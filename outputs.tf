@@ -1,17 +1,17 @@
 output "forwarding_rules" {
   value = [for i, v in local.forwarding_rules :
     {
-      is_regional     = v.is_regional
-      index_key       = v.index_key
-      name            = v.name
-      region          = v.region
-      ip_address      = v.ip_address
-      address_key     = v.address_key
-      address_name    = v.address_name
-      id              = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].id, null) : try(google_compute_global_forwarding_rule.default[v.index_key].id, null)
-      self_link       = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].self_link, null) : try(google_compute_global_forwarding_rule.default[v.index_key].self_link, null)
-      backend_service = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].backend_service, null) : try(google_compute_global_forwarding_rule.default[v.index_key].backend_service, 
-null)
+      is_regional  = v.is_regional
+      index_key    = v.index_key
+      name         = v.name
+      region       = v.region
+      ip_address   = v.ip_address
+      address_key  = v.address_key
+      address_name = v.address_name
+      id           = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].id, null) : try(google_compute_global_forwarding_rule.default[v.index_key].id, null)
+      self_link    = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].self_link, null) : try(google_compute_global_forwarding_rule.default[v.index_key].self_link, null)
+      backend_service = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].backend_service, null) : try(google_compute_global_forwarding_rule.default[v.index_key].backend_service,
+      null)
       connected_endpoints = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].connected_endpoints, null) : null
     }
   ]
