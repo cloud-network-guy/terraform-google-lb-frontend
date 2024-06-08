@@ -10,7 +10,9 @@ output "forwarding_rules" {
       address_name    = v.address_name
       id              = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].id, null) : try(google_compute_global_forwarding_rule.default[v.index_key].id, null)
       self_link       = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].self_link, null) : try(google_compute_global_forwarding_rule.default[v.index_key].self_link, null)
-      backend_service = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].backend_service, null) : try(google_compute_global_forwarding_rule.default[v.index_key].backend_service, null)
+      backend_service = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].backend_service, null) : try(google_compute_global_forwarding_rule.default[v.index_key].backend_service, 
+null)
+      connected_endpoints = v.is_regional ? try(google_compute_forwarding_rule.default[v.index_key].connected_endpoints, null) : null
     }
   ]
 }
@@ -23,19 +25,16 @@ output "ip_addresses" {
     }
   ]
 }
-
 output "ipv4_address" {
   value = one([for i, v in local.ip_addresses :
     (v.is_regional ? google_compute_address.default[v.index_key].address : google_compute_global_address.default[v.index_key].address) if v.ip_version == "IPV4"
   ])
 }
-
 output "ipv6_address" {
   value = one([for i, v in local.ip_addresses :
     (v.is_regional ? google_compute_address.default[v.index_key].address : google_compute_global_address.default[v.index_key].address) if v.ip_version == "IPV6"
   ])
 }
-
 output "ssl_certs" {
   value = local.ssl_certs
 }
