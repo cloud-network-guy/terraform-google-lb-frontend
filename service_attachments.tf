@@ -7,7 +7,7 @@ locals {
       is_regional               = local.region != "global" ? true : false
       region                    = local.region
       description               = coalesce(v.psc.description, "PSC Publish for '${v.name}'")
-      reconcile_connections     = coalesce(v.psc.reconcile_connections, true)
+      reconcile_connections     = coalesce(v.psc.reconcile_connections, false)
       enable_proxy_protocol     = coalesce(v.psc.enable_proxy_protocol, false)
       auto_accept_all_projects  = coalesce(v.psc.auto_accept_all_projects, false)
       accept_project_ids        = coalesce(v.psc.accept_project_ids, [])
