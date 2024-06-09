@@ -160,6 +160,10 @@ variable "all_ports" {
   type    = bool
   default = null
 }
+variable "port" {
+  type    = number
+  default = null
+}
 variable "ports" {
   type    = list(number)
   default = null
@@ -170,6 +174,10 @@ variable "http_port" {
 }
 variable "https_port" {
   type    = number
+  default = null
+}
+variable "protocol" {
+  type    = string
   default = null
 }
 variable "min_tls_version" {
